@@ -1,12 +1,12 @@
 """
-ContextAgent - Fetches and compresses ticket context from MongoDB.
+ContextDetailer - Fetches and compresses ticket context from MongoDB.
 """
 from typing import Dict
 from database import get_tickets_collection, get_comments_collection, get_attachments_collection
 from triage.state import TriageState
 
 
-async def context_agent(state: TriageState) -> TriageState:
+async def context_detailer(state: TriageState) -> TriageState:
     """
     Fetch ticket, comments, and attachments from MongoDB.
     Build compact context for downstream agents.
@@ -14,7 +14,7 @@ async def context_agent(state: TriageState) -> TriageState:
     try:
         ticket = state.get("ticket")
         if not ticket or not ticket.get("_id"):
-            state["error"] = "No ticket provided to ContextAgent"
+            state["error"] = "No ticket provided to ContextDetailer"
             return state
         
         ticket_id = str(ticket["_id"])
@@ -56,5 +56,6 @@ async def context_agent(state: TriageState) -> TriageState:
         return state
         
     except Exception as e:
-        state["error"] = f"ContextAgent error: {str(e)}"
+        state["error"] = f"ContextDetailer error: {str(e)}"
         return state
+

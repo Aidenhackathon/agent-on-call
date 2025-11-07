@@ -18,7 +18,7 @@ The workflow is built using **LangGraph** (0.2.28) and orchestrates multiple spe
          │
          ▼
 ┌─────────────────────┐
-│  1. ContextAgent    │ ◄─── Fetches ticket, comments, attachments
+│  1. ContextDetailer │ ◄─── Fetches ticket, comments, attachments
 │  (fetch_context)    │      Builds compact context for downstream agents
 └──────────┬──────────┘
            │
@@ -71,7 +71,7 @@ The workflow uses a `TriageState` TypedDict that is passed between agents:
 ```python
 class TriageState(TypedDict, total=False):
     ticket: Optional[dict]      # Original ticket from MongoDB
-    context: Optional[dict]     # Compact context from ContextAgent
+    context: Optional[dict]     # Compact context from ContextDetailer
     priority: Optional[dict]    # Priority info from PriorityAgent
     assignee: Optional[dict]    # Assignee info from AssigneeAgent
     rationale: Optional[dict]   # Rationale from RationaleAgent
@@ -81,9 +81,9 @@ class TriageState(TypedDict, total=False):
 
 ## Detailed Agent Descriptions
 
-### 1. ContextAgent (`fetch_context`)
+### 1. ContextDetailer (`fetch_context`)
 
-**Location**: `backend/triage/agents/context_agent.py`
+**Location**: `backend/triage/agents/context_detailer.py`
 
 **Purpose**: Gathers all relevant ticket information into a compact context object for downstream agents.
 
@@ -138,7 +138,7 @@ class TriageState(TypedDict, total=False):
 ```
 
 **Error Handling**:
-- Sets `state["error"] = "No ticket provided to ContextAgent"` if ticket is missing or invalid
+- Sets `state["error"] = "No ticket provided to ContextDetailer"` if ticket is missing or invalid
 - Catches exceptions and sets error message in state
 
 **Database Operations**:
@@ -599,7 +599,7 @@ def create_triage_graph():
     workflow = StateGraph(TriageState)
     
     # Add nodes
-    workflow.add_node("fetch_context", context_agent)
+    workflow.add_node("fetch_context", context_detailer)
     workflow.add_node("determine_priority", priority_agent)
     workflow.add_node("assign_user", assignee_agent)
     workflow.add_node("generate_rationale", rationale_agent)
@@ -626,8 +626,8 @@ def create_triage_graph():
 
 Each agent handles errors gracefully:
 
-1. **ContextAgent**:
-   - Sets `state["error"] = "No ticket provided to ContextAgent"` if ticket is invalid
+1. **ContextDetailer**:
+   - Sets `state["error"] = "No ticket provided to ContextDetailer"` if ticket is invalid
    - Catches exceptions and sets error message
 
 2. **PriorityAgent**:
@@ -683,12 +683,12 @@ This allows the system to work without API keys for testing and development.
 
 ### Collections Used
 
-1. **`tickets`**: Main ticket documents (read by ContextAgent, updated by PersistNode)
+1. **`tickets`**: Main ticket documents (read by ContextDetailer, updated by PersistNode)
 2. **`users`**: Team definitions with skills (read by AssigneeAgent and PersistNode)
 3. **`triage_results`**: Historical triage results (written by PersistNode)
 4. **`activity_logs`**: Activity events (written by PersistNode)
-5. **`comments`**: Ticket comments (read by ContextAgent)
-6. **`attachments`**: Ticket attachments (read by ContextAgent)
+5. **`comments`**: Ticket comments (read by ContextDetailer)
+6. **`attachments`**: Ticket attachments (read by ContextDetailer)
 
 ### Database Connection
 
@@ -740,7 +740,7 @@ All agents use the same Gemini model configuration:
 
 ### Workflow Execution
 
-#### Step 1: ContextAgent
+#### Step 1: ContextDetailer
 ```python
 Input: {"ticket": {...}}
 Output: {

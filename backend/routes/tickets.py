@@ -228,7 +228,7 @@ async def triage_ticket(ticket_id: str):
     """
     Trigger AI triage for a ticket using LangGraph multi-agent workflow.
     
-    Flow: ContextAgent → PriorityAgent → AssigneeAgent → RationaleAgent → ReplyAgent → PersistNode
+    Flow: ContextDetailer → PriorityAgent → AssigneeAgent → RationaleAgent → ReplyAgent → PersistNode
     """
     from database import _recreate_client
     

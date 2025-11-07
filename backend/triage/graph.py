@@ -3,7 +3,7 @@ LangGraph workflow definition for multi-agent ticket triage.
 """
 from langgraph.graph import StateGraph, END
 from triage.state import TriageState
-from triage.agents.context_agent import context_agent
+from triage.agents.context_detailer import context_detailer
 from triage.agents.priority_agent import priority_agent
 from triage.agents.assignee_agent import assignee_agent
 from triage.agents.rationale_agent import rationale_agent
@@ -26,14 +26,14 @@ def create_triage_graph():
     Create and compile the LangGraph triage workflow.
     
     Flow:
-        context_agent → priority_agent → assignee_agent → rationale_agent → reply_agent → persist_node → END
+        context_detailer → priority_agent → assignee_agent → rationale_agent → reply_agent → persist_node → END
     """
     
     # Initialize graph with state schema
     workflow = StateGraph(TriageState)
     
     # Add nodes (using unique names that don't conflict with state keys)
-    workflow.add_node("fetch_context", context_agent)
+    workflow.add_node("fetch_context", context_detailer)
     workflow.add_node("determine_priority", priority_agent)
     workflow.add_node("assign_user", assignee_agent)
     workflow.add_node("generate_rationale", rationale_agent)

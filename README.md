@@ -52,7 +52,7 @@ agent-on-call/
 │   │   ├── state.py            # LangGraph state definition
 │   │   ├── graph.py            # LangGraph workflow definition
 │   │   └── agents/
-│   │       ├── context_agent.py    # Extracts ticket context
+│   │       ├── context_detailer.py    # Extracts ticket context
 │   │       ├── priority_agent.py   # Determines priority
 │   │       ├── assignee_agent.py   # Assigns ticket to team
 │   │       ├── rationale_agent.py  # Generates rationale explanations
@@ -293,7 +293,7 @@ The AI triage system uses a **LangGraph-based multi-agent workflow** with 5 spec
 
 ### Workflow Flow
 
-1. **ContextAgent** → Extracts ticket context (title, description, tags, comments, attachments)
+1. **ContextDetailer** → Extracts ticket context (title, description, tags, comments, attachments)
 2. **PriorityAgent** → Determines priority (P0/P1/P2/P3) using heuristics + Gemini AI
 3. **AssigneeAgent** → Assigns ticket to best team based on skill matching
 4. **RationaleAgent** → Generates explanations for priority and assignee decisions
