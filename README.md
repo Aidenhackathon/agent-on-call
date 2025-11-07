@@ -85,9 +85,7 @@ agent-on-call/
 │   └── Dockerfile              # Frontend container config
 ├── docker-compose.yml          # Multi-container orchestration
 ├── README.md                   # This file
-├── PROJECT.md                  # Comprehensive project documentation
-├── LANGGRAPH_FLOW.md           # Detailed LangGraph workflow documentation
-└── TESTING.md                  # Testing documentation
+└── LANGGRAPH_FLOW.md           # Detailed LangGraph workflow documentation
 ```
 
 ## 🚀 Quick Start
@@ -398,9 +396,7 @@ docker-compose up -d
 
 ## 📝 Documentation
 
-- **[PROJECT.md](PROJECT.md)** - Comprehensive project documentation
 - **[LANGGRAPH_FLOW.md](LANGGRAPH_FLOW.md)** - Detailed LangGraph workflow documentation
-- **[TESTING.md](TESTING.md)** - Testing documentation and guidelines
 - **API Docs** - Interactive API documentation at http://localhost:8000/docs
 
 ## 🔒 Security Considerations
@@ -437,7 +433,7 @@ For issues or questions:
 1. Check the troubleshooting section
 2. Review API documentation at `/docs`
 3. Check Docker logs: `docker-compose logs`
-4. Review test documentation: [TESTING.md](TESTING.md)
+4. Review LangGraph workflow documentation: [LANGGRAPH_FLOW.md](LANGGRAPH_FLOW.md)
 
 ## 🎯 Recent Updates
 
