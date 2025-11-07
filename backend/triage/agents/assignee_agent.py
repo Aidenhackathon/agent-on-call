@@ -16,7 +16,7 @@ USE_MOCK = os.getenv("USE_MOCK_AI", "false").lower() == "true"
 llm = None
 if GEMINI_API_KEY and not USE_MOCK:
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",
+        model="gemini-2.5-flash",
         api_key=GEMINI_API_KEY,
         temperature=0.2
     )
@@ -39,6 +39,17 @@ async def assignee_agent(state: TriageState) -> TriageState:
         
         if not context:
             state["error"] = "No context available for AssigneeAgent"
+            return state
+        
+        # Check if title and description are ambiguous - route to customer support if so
+        title = context.get("title", "").strip()
+        body = context.get("body", "").strip()
+        
+        is_ambiguous = await _check_ambiguity(title, body)
+        if is_ambiguous:
+            state["assignee"] = {
+                "assignee_user_id": "customer_support"
+            }
             return state
         
         # Fetch all teams from MongoDB
@@ -84,6 +95,108 @@ async def assignee_agent(state: TriageState) -> TriageState:
             "assignee_user_id": "unassigned"
         }
         return state
+
+
+async def _check_ambiguity(title: str, body: str) -> bool:
+    """
+    Check if ticket title and description are ambiguous.
+    Returns True if ambiguous (should route to customer support).
+    """
+    # Basic heuristic check
+    is_ambiguous_heuristic = _check_ambiguity_heuristic(title, body)
+    
+    # Use Gemini for validation if available
+    if llm and not USE_MOCK:
+        try:
+            is_ambiguous = await _gemini_clarity_check(title, body, is_ambiguous_heuristic)
+            return is_ambiguous
+        except Exception as e:
+            print(f"Gemini clarity check error: {e}")
+            return is_ambiguous_heuristic
+    
+    return is_ambiguous_heuristic
+
+
+def _check_ambiguity_heuristic(title: str, body: str) -> bool:
+    """
+    Heuristic check for ambiguous tickets.
+    Returns True if ticket appears ambiguous.
+    """
+    # Check if title or body is too short
+    if len(title) < 5 or len(body) < 10:
+        return True
+    
+    # Check for vague phrases
+    vague_phrases = [
+        "i don't know", "not sure", "maybe", "i think", "something",
+        "help", "issue", "problem", "broken", "doesn't work",
+        "not working", "error", "bug", "question", "?"
+    ]
+    
+    title_lower = title.lower()
+    body_lower = body.lower()
+    
+    # If title is very vague and body doesn't add clarity
+    vague_title_count = sum(1 for phrase in vague_phrases if phrase in title_lower)
+    if vague_title_count >= 2 and len(body) < 50:
+        return True
+    
+    # If body is very short and vague
+    if len(body) < 30 and any(phrase in body_lower for phrase in vague_phrases[:5]):
+        return True
+    
+    # If title is just "help" or similar with minimal body
+    if title_lower in ["help", "issue", "problem", "error", "bug", "question"] and len(body) < 40:
+        return True
+    
+    return False
+
+
+async def _gemini_clarity_check(title: str, body: str, heuristic_ambiguous: bool) -> bool:
+    """Use Gemini to check if ticket is clear and unambiguous."""
+    prompt = f"""You are a ticket triage expert. Analyze if this ticket's title and description are clear and unambiguous.
+
+Ticket Title: {title}
+Ticket Description: {body}
+
+A ticket is considered AMBIGUOUS if:
+1. The title is too vague (e.g., "help", "issue", "problem", "error" without context)
+2. The description lacks sufficient detail to understand what the customer needs
+3. The description is too short or doesn't explain the actual problem
+4. It's unclear what the customer is asking for or what problem they're experiencing
+5. The ticket lacks specific details about the issue
+
+A ticket is considered CLEAR if:
+1. The title is specific and descriptive
+2. The description provides enough context to understand the issue
+3. It's clear what the customer needs or what problem they're facing
+4. There are enough details to route the ticket to the appropriate team
+
+Heuristic Suggestion: {"AMBIGUOUS" if heuristic_ambiguous else "CLEAR"}
+
+Respond in JSON format:
+{{
+    "is_ambiguous": <true if ambiguous, false if clear>
+}}
+
+Only return is_ambiguous - true if the ticket should be routed to customer support for clarification."""
+    
+    try:
+        response = await llm.ainvoke(prompt)
+        result_text = response.content.strip()
+        
+        # Clean JSON from markdown
+        if "```json" in result_text:
+            result_text = result_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in result_text:
+            result_text = result_text.split("```")[1].split("```")[0].strip()
+        
+        result = json.loads(result_text)
+        return bool(result.get("is_ambiguous", heuristic_ambiguous))
+        
+    except Exception as e:
+        print(f"Gemini clarity check error: {e}")
+        return heuristic_ambiguous
 
 
 def _score_users(users: List[Dict], context: Dict, priority_info: Dict) -> List[Dict]:

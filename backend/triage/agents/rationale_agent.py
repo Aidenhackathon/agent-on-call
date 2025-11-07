@@ -16,7 +16,7 @@ USE_MOCK = os.getenv("USE_MOCK_AI", "false").lower() == "true"
 llm = None
 if GEMINI_API_KEY and not USE_MOCK:
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",
+        model="gemini-2.5-flash",
         api_key=GEMINI_API_KEY,
         temperature=0.2
     )

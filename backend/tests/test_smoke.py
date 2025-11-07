@@ -50,6 +50,9 @@ def test_create_and_triage_ticket():
     
     # Run triage
     triage_response = client.post(f"/tickets/{ticket_id}/triage")
+    if triage_response.status_code != 200:
+        print(f"Triage failed with status {triage_response.status_code}")
+        print(f"Response: {triage_response.text}")
     assert triage_response.status_code == 200
     triage_data = triage_response.json()
     
@@ -69,7 +72,7 @@ def test_create_and_triage_ticket():
     assert updated_ticket["priority"] == triage_data["priority"]
     assert updated_ticket["assignee"] == triage_data["assignee"]
     
-    print("✅ Smoke test passed: Ticket created, triaged, and persisted successfully")
+    print("Smoke test passed: Ticket created, triaged, and persisted successfully")
 
 def test_update_ticket():
     """Test updating a ticket."""

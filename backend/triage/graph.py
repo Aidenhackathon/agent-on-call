@@ -10,6 +10,16 @@ from triage.agents.rationale_agent import rationale_agent
 from triage.agents.reply_agent import reply_agent
 from triage.agents.persist_node import persist_node
 
+# Workaround for langchain.debug attribute error
+# Some versions of langgraph try to access langchain.debug which doesn't exist
+try:
+    import langchain
+    if not hasattr(langchain, 'debug'):
+        # Create a dummy debug attribute to prevent AttributeError
+        langchain.debug = lambda *args, **kwargs: None
+except ImportError:
+    pass
+
 
 def create_triage_graph():
     """

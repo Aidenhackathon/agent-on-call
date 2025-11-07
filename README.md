@@ -1,10 +1,11 @@
 # Agent-on-Call – AI-Powered Ticket Triage System
 
-A full-stack AI-powered helpdesk ticket system that automatically triages tickets to assign priority, suggest assignees, and generate first reply drafts using Google Gemini AI.
+A full-stack AI-powered helpdesk ticket system that automatically triages tickets to assign priority, suggest assignees, and generate first reply drafts using Google Gemini AI and LangGraph multi-agent workflows.
 
 ## 🎯 Features
 
-- **Auto-Triage with AI**: Automatically assigns priority (P0-P3), suggests assignee, and generates reply drafts
+- **Auto-Triage with AI**: Automatically assigns priority (P0-P3), suggests assignee, and generates reply drafts using LangGraph multi-agent workflow
+- **Multi-Agent System**: 5 specialized agents working in sequence (Context, Priority, Assignee, Rationale, Reply)
 - **Persistent Data**: All triage results persist in MongoDB and remain after refresh
 - **Real-time Updates**: Instant ticket updates via REST API
 - **Activity Logging**: Complete audit trail of all ticket actions
@@ -12,15 +13,19 @@ A full-stack AI-powered helpdesk ticket system that automatically triages ticket
 - **Responsive UI**: Modern Material-UI interface with clean design
 - **Fallback Handling**: Graceful error handling if AI triage fails
 - **Docker Support**: Complete containerized setup with docker-compose
+- **Comprehensive Testing**: Full smoke test suite with 6 passing tests
 
 ## 🏗️ Tech Stack
 
 ### Backend
-- **FastAPI** - High-performance Python web framework
-- **MongoDB** - NoSQL database for flexible data storage
-- **Motor** - Async MongoDB driver
-- **Google Gemini AI** - AI-powered triage logic
-- **pytest** - Testing framework
+- **FastAPI** (0.109.0) - High-performance Python web framework
+- **MongoDB** (7.0) - NoSQL database for flexible data storage
+- **Motor** (3.3.2) - Async MongoDB driver
+- **LangGraph** (0.2.28) - Multi-agent workflow orchestration
+- **LangChain** (0.3.6) - LLM framework integration
+- **Google Gemini AI** (2.0-flash) - AI-powered triage logic
+- **Pydantic** (2.7.4) - Data validation and serialization
+- **Pytest** (7.4.3) - Testing framework
 
 ### Frontend
 - **React 18** - Modern UI library
@@ -38,10 +43,11 @@ agent-on-call/
 │   ├── database.py             # MongoDB connection management
 │   ├── models.py               # Data models
 │   ├── schemas.py              # Pydantic schemas for validation
+│   ├── seed_users.py           # Database seeding script
 │   ├── routes/
 │   │   └── tickets.py          # Ticket CRUD and triage endpoints
 │   ├── services/
-│   │   └── ai_triage.py        # Gemini AI integration (legacy)
+│   │   └── ai_triage.py        # Legacy Gemini AI integration
 │   ├── triage/
 │   │   ├── state.py            # LangGraph state definition
 │   │   ├── graph.py            # LangGraph workflow definition
@@ -53,10 +59,11 @@ agent-on-call/
 │   │       ├── reply_agent.py      # Generates reply draft
 │   │       └── persist_node.py     # Persists results to MongoDB
 │   ├── tests/
-│   │   └── test_smoke.py       # Smoke tests
+│   │   ├── conftest.py         # Pytest configuration
+│   │   └── test_smoke.py       # Smoke tests (6 tests)
 │   ├── requirements.txt        # Python dependencies
-│   ├── Dockerfile              # Backend container config
-│   └── .env.example            # Environment variables template
+│   ├── requirements-dev.txt    # Development dependencies
+│   └── Dockerfile              # Backend container config
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx             # Main app component
@@ -75,13 +82,12 @@ agent-on-call/
 │   │       └── CreateTicket.jsx
 │   ├── package.json            # Node dependencies
 │   ├── vite.config.js          # Vite configuration
-│   ├── Dockerfile              # Frontend container config
-│   └── .env.example            # Environment variables template
+│   └── Dockerfile              # Frontend container config
 ├── docker-compose.yml          # Multi-container orchestration
-├── .env.example                # Root environment variables
 ├── README.md                   # This file
+├── PROJECT.md                  # Comprehensive project documentation
 ├── LANGGRAPH_FLOW.md           # Detailed LangGraph workflow documentation
-└── PROJECT.md                  # Comprehensive project documentation
+└── TESTING.md                  # Testing documentation
 ```
 
 ## 🚀 Quick Start
@@ -89,7 +95,9 @@ agent-on-call/
 ### Prerequisites
 
 - Docker and Docker Compose installed
-- Google Gemini API key (get one at https://makersuite.google.com/app/apikey)
+- Google Gemini API key (optional, get one at https://makersuite.google.com/app/apikey)
+- Python 3.12+ (for local development)
+- Node.js 18+ (for local frontend development)
 
 ### Setup Instructions
 
@@ -100,11 +108,10 @@ agent-on-call/
 
 2. **Set up environment variables**:
    ```bash
-   # Copy the example env file
-   cp .env.example .env
-   
-   # Edit .env and add your Gemini API key
-   # GEMINI_API_KEY=your_actual_api_key_here
+   # Create .env file in root directory
+   GEMINI_API_KEY=your_actual_api_key_here
+   USE_MOCK_AI=false
+   MONGODB_URL=mongodb://mongodb:27017
    ```
 
 3. **Start the application with Docker**:
@@ -117,7 +124,12 @@ agent-on-call/
    - Backend API (port 8000)
    - Frontend UI (port 5173)
 
-4. **Access the application**:
+4. **Seed the database** (optional):
+   ```bash
+   docker exec agent-on-call-backend python seed_users.py
+   ```
+
+5. **Access the application**:
    - **Frontend UI**: http://localhost:5173
    - **Backend API Docs**: http://localhost:8000/docs
    - **Backend API**: http://localhost:8000
@@ -135,17 +147,21 @@ agent-on-call/
    ```bash
    python -m venv venv
    .\venv\Scripts\activate  # Windows PowerShell
+   source venv/bin/activate  # Linux/Mac
    ```
 
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
+   pip install -r requirements-dev.txt  # For development
    ```
 
 4. Set environment variables:
    ```bash
-   cp .env.example .env
-   # Edit .env with your settings
+   # Create .env file
+   MONGODB_URL=mongodb://localhost:27017
+   GEMINI_API_KEY=your_api_key_here
+   USE_MOCK_AI=false
    ```
 
 5. Ensure MongoDB is running (install locally or use Docker):
@@ -172,8 +188,8 @@ agent-on-call/
 
 3. Set environment variables:
    ```bash
-   cp .env.example .env
-   # Edit .env if needed
+   # Create .env file
+   VITE_API_URL=http://localhost:8000
    ```
 
 4. Start the frontend:
@@ -181,12 +197,44 @@ agent-on-call/
    npm run dev
    ```
 
+## 🧪 Testing
+
+### Run Smoke Tests
+
+```bash
+cd backend
+pytest tests/test_smoke.py -v
+```
+
+### Test Coverage
+
+The smoke test suite includes 6 comprehensive tests:
+
+1. ✅ **test_root** - Root endpoint health check
+2. ✅ **test_create_ticket** - Ticket creation functionality
+3. ✅ **test_list_tickets** - Ticket listing functionality
+4. ✅ **test_create_and_triage_ticket** - Full triage workflow (create → triage → verify)
+5. ✅ **test_update_ticket** - Ticket update functionality
+6. ✅ **test_delete_ticket** - Ticket deletion functionality
+
+All tests validate:
+- API endpoint responses
+- Data persistence in MongoDB
+- AI triage execution
+- Priority assignment
+- Assignee suggestion
+- Reply draft generation
+- Error handling
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
 ## 📡 API Endpoints
 
 ### Tickets
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/` | Root endpoint (health check) |
 | GET | `/tickets` | List all tickets |
 | GET | `/tickets/{id}` | Get single ticket |
 | POST | `/tickets` | Create new ticket |
@@ -217,8 +265,8 @@ curl -X POST http://localhost:8000/tickets \
   "status": "open",
   "priority": null,
   "assignee": null,
-  "created_at": "2025-10-28T10:30:00",
-  "updated_at": "2025-10-28T10:30:00",
+  "created_at": "2025-10-28T10:30:00+05:30",
+  "updated_at": "2025-10-28T10:30:00+05:30",
   "activities": [...]
 }
 ```
@@ -239,16 +287,14 @@ curl -X POST http://localhost:8000/tickets/65abc123def456/triage
 }
 ```
 
-#### Get Ticket Details
-```bash
-curl http://localhost:8000/tickets/65abc123def456
-```
+Visit http://localhost:8000/docs for interactive API documentation.
 
 ## 🤖 AI Triage Logic (LangGraph Multi-Agent System)
 
-The AI triage system uses a **LangGraph-based multi-agent workflow** with 5 specialized agents:
+The AI triage system uses a **LangGraph-based multi-agent workflow** with 5 specialized agents working in sequence:
 
 ### Workflow Flow
+
 1. **ContextAgent** → Extracts ticket context (title, description, tags, comments, attachments)
 2. **PriorityAgent** → Determines priority (P0/P1/P2/P3) using heuristics + Gemini AI
 3. **AssigneeAgent** → Assigns ticket to best team based on skill matching
@@ -270,54 +316,7 @@ The AI triage system uses a **LangGraph-based multi-agent workflow** with 5 spec
 - **Product**: Feature requests, product questions
 - **Customer Support**: General inquiries, account issues
 
-### Rationale Generation
-- **Priority Rationale**: Explains why a specific priority level was assigned
-- **Assignee Rationale**: Explains why a specific team was assigned
-- Both rationales are generated by the RationaleAgent using Gemini AI
-
-### Reply Draft Generation
-- Professional and empathetic tone
-- Acknowledges the issue
-- Sets clear expectations
-- Maximum 120 words
-
-## 🧪 Testing
-
-### Run Smoke Tests
-
-```bash
-cd backend
-pytest tests/test_smoke.py -v
-```
-
-### Test Coverage
-
-The smoke test validates:
-- ✅ Ticket creation
-- ✅ AI triage execution
-- ✅ Data persistence
-- ✅ Priority assignment
-- ✅ Assignee suggestion
-- ✅ Reply draft generation
-
-## 🎨 UI Features
-
-### Ticket Board View
-- Card-based layout showing all tickets
-- Status and priority badges
-- Quick navigation to ticket details
-
-### Ticket Detail View
-- Complete ticket information
-- AI triage results with confidence scores
-- Editable reply drafts
-- Activity timeline
-- Delete functionality
-
-### Create Ticket Form
-- Title, description, and category fields
-- Form validation
-- Immediate redirect to created ticket
+See [LANGGRAPH_FLOW.md](LANGGRAPH_FLOW.md) for detailed workflow documentation.
 
 ## 🔧 Configuration
 
@@ -325,7 +324,8 @@ The smoke test validates:
 
 #### Backend (.env)
 ```env
-MONGODB_URL=mongodb://mongodb:27017
+MONGODB_URL=mongodb://mongodb:27017  # For Docker
+# MONGODB_URL=mongodb://localhost:27017  # For local development
 GEMINI_API_KEY=your_gemini_api_key_here
 USE_MOCK_AI=false
 ```
@@ -384,14 +384,24 @@ docker-compose up -d
 - Verify GEMINI_API_KEY is set correctly
 - Check API quota and limits
 - Enable mock mode: `USE_MOCK_AI=true`
+- Check logs for detailed error messages
 
 ### Docker issues
 - Clear Docker cache: `docker-compose down -v`
 - Rebuild containers: `docker-compose up --build`
+- Check logs: `docker-compose logs backend`
 
-## 📝 API Documentation
+### Test failures
+- Ensure MongoDB is running
+- Check database connection: `MONGODB_URL=mongodb://localhost:27017`
+- Run tests with verbose output: `pytest tests/test_smoke.py -v -s`
 
-Visit http://localhost:8000/docs for interactive API documentation powered by FastAPI's automatic OpenAPI generation.
+## 📝 Documentation
+
+- **[PROJECT.md](PROJECT.md)** - Comprehensive project documentation
+- **[LANGGRAPH_FLOW.md](LANGGRAPH_FLOW.md)** - Detailed LangGraph workflow documentation
+- **[TESTING.md](TESTING.md)** - Testing documentation and guidelines
+- **API Docs** - Interactive API documentation at http://localhost:8000/docs
 
 ## 🔒 Security Considerations
 
@@ -407,13 +417,15 @@ Visit http://localhost:8000/docs for interactive API documentation powered by Fa
 - Supports concurrent requests
 - MongoDB indexing for fast queries
 - Async operations with Motor driver
+- Efficient LangGraph workflow execution
 
 ## 🤝 Contributing
 
 1. Create a feature branch
 2. Make your changes
-3. Run tests: `pytest`
-4. Submit a pull request
+3. Run tests: `pytest tests/test_smoke.py -v`
+4. Ensure all tests pass
+5. Submit a pull request
 
 ## 📄 License
 
@@ -425,6 +437,16 @@ For issues or questions:
 1. Check the troubleshooting section
 2. Review API documentation at `/docs`
 3. Check Docker logs: `docker-compose logs`
+4. Review test documentation: [TESTING.md](TESTING.md)
+
+## 🎯 Recent Updates
+
+### Latest Changes
+- ✅ Fixed event loop issues with Motor/MongoDB in test environment
+- ✅ Added comprehensive smoke test suite (6 tests, all passing)
+- ✅ Fixed LangChain debug attribute error in LangGraph workflow
+- ✅ Improved error handling and database connection management
+- ✅ Added lazy database connection for better test compatibility
 
 ## 🎯 Future Enhancements
 
@@ -436,7 +458,10 @@ For issues or questions:
 - [ ] Multi-language support
 - [ ] Export to CSV/PDF
 - [ ] Real-time updates with WebSockets
+- [ ] Conditional workflow routing based on priority
+- [ ] Parallel agent execution for performance
+- [ ] Feedback loop for learning from manual overrides
 
 ---
 
-**Built with ❤️ using FastAPI, React, MongoDB, and Google Gemini AI**
+**Built with ❤️ using FastAPI, React, MongoDB, LangGraph, and Google Gemini AI**

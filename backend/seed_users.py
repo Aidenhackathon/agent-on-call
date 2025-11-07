@@ -120,7 +120,7 @@ async def seed_users():
             "_id": "devops_team",
             "name": "DevOps Team",
             "skills": [
-                "it", "infrastructure", "server", "networking", "cloud", "aws", "azure", "gcp",
+             "infrastructure", "server", "networking", "cloud", "aws", "azure", "gcp",
                 "kubernetes", "docker", "containerization", "ci/cd", "deployment", "devops",
                 "monitoring", "logging", "alerting", "terraform", "ansible", "infrastructure as code",
                 "system outage", "server down", "infrastructure issues", "deployment problems",
