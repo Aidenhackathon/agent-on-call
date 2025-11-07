@@ -53,37 +53,30 @@ const ActivityLog = ({ activities }) => {
 
   const formatDate = (dateString) => {
     if (!dateString) {
-      console.warn('ActivityLog: No timestamp provided for activity');
       return 'N/A';
     }
     
     try {
-      // Parse the date string - handle both ISO strings with timezone and without
+      // Parse the date string
       let date = new Date(dateString);
       
       // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.warn('ActivityLog: Invalid date string:', dateString);
-        return dateString || 'N/A'; // Return original string if invalid
+        return 'N/A';
       }
       
-      // Always format in IST timezone for display
-      // The date object stores UTC internally, so we convert to IST for display
+      // Format only date (no time) in IST timezone
       const formatted = new Intl.DateTimeFormat('en-IN', {
         timeZone: 'Asia/Kolkata',
         year: 'numeric',
         month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: true
+        day: '2-digit'
       }).format(date);
       
       return formatted || 'N/A';
     } catch (error) {
-      console.error('ActivityLog: Error formatting date:', error, dateString);
-      return dateString || 'N/A';
+      console.error('ActivityLog: Error formatting date:', error);
+      return 'N/A';
     }
   };
 

@@ -29,18 +29,20 @@ const TicketCard = ({ ticket }) => {
   const navigate = useNavigate();
 
   const formatDate = (dateString) => {
-    // Display IST time directly without timezone conversion
-    const date = new Date(dateString);
-    return date.toLocaleString('en-IN', { 
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      // Format only date (no time)
+      return new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date);
+    } catch (error) {
+      return 'N/A';
+    }
   };
 
   return (

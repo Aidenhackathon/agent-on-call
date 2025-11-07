@@ -23,15 +23,15 @@ async def clear_database():
         "attachments"
     ]
     
-    print("🗑️  Clearing MongoDB database...")
+    print("Clearing MongoDB database...")
     
     for collection_name in collections:
         collection = db[collection_name]
         result = await collection.delete_many({})
-        print(f"   ✅ Cleared {collection_name}: {result.deleted_count} documents")
+        print(f"   Cleared {collection_name}: {result.deleted_count} documents")
     
-    print("✅ Database cleared successfully!")
-    print("💡 Run seed_users.py to populate teams data.")
+    print("Database cleared successfully!")
+    print("Run seed_users.py to populate teams data.")
 
 
 if __name__ == "__main__":
