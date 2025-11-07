@@ -7,7 +7,7 @@ class TicketCreate(BaseModel):
     """Schema for creating a ticket."""
     title: str
     description: str
-    category: str
+    category: Optional[str] = "General"  # Default category, can be auto-detected later
     product_area: Optional[str] = None
     tags: List[str] = []
 

@@ -19,7 +19,6 @@ async def persist_node(state: TriageState) -> TriageState:
     1. Update ticket (priority, assignee_user_id, status)
     2. Insert triage_results document
     3. Insert activity_log
-    4. Increment assignee workload
     
     Returns final state.
     """
@@ -27,6 +26,7 @@ async def persist_node(state: TriageState) -> TriageState:
         ticket = state.get("ticket")
         priority_info = state.get("priority", {})
         assignee_info = state.get("assignee", {})
+        rationale_info = state.get("rationale", {})
         reply = state.get("reply", "")
         
         if not ticket or not ticket.get("_id"):
@@ -36,6 +36,10 @@ async def persist_node(state: TriageState) -> TriageState:
         # Ensure assignee_info is not None
         if assignee_info is None:
             assignee_info = {}
+        
+        # Ensure rationale_info is not None
+        if rationale_info is None:
+            rationale_info = {}
         
         ticket_id = ticket["_id"]
         now = get_ist_now()
@@ -54,6 +58,11 @@ async def persist_node(state: TriageState) -> TriageState:
             if team:
                 assignee_name = team.get("name", assignee_user_id)
         
+        # Combine rationales from RationaleAgent
+        priority_rationale = rationale_info.get("priority_rationale", "")
+        assignee_rationale = rationale_info.get("assignee_rationale", "")
+        combined_rationale = f"{priority_rationale} | {assignee_rationale}" if priority_rationale and assignee_rationale else (priority_rationale or assignee_rationale)
+        
         update_fields = {
             # New fields for multi-agent system
             "priority": priority_info.get("priority", "P3"),
@@ -62,7 +71,7 @@ async def persist_node(state: TriageState) -> TriageState:
             "updated_at": now,
             # Legacy fields for frontend compatibility
             "assignee": assignee_name,
-            "ai_rationale": f"{priority_info.get('rationale', '')} | {assignee_info.get('rationale', '')}",
+            "ai_rationale": combined_rationale,
             "ai_reply_draft": reply,
             "ai_confidence": priority_info.get("confidence", 0.0)
         }
@@ -79,9 +88,9 @@ async def persist_node(state: TriageState) -> TriageState:
             "ticket_id": str(ticket_id),
             "priority": priority_info.get("priority", "P3"),
             "priority_confidence": priority_info.get("confidence", 0.0),
-            "priority_rationale": priority_info.get("rationale", ""),
+            "priority_rationale": priority_rationale,
             "assignee_user_id": assignee_info.get("assignee_user_id"),
-            "assignee_rationale": assignee_info.get("rationale", ""),
+            "assignee_rationale": assignee_rationale,
             "reply_draft": reply,
             "created_at": now
         }
@@ -103,15 +112,6 @@ async def persist_node(state: TriageState) -> TriageState:
         }
         
         await activity_logs_collection.insert_one(activity_log_doc)
-        
-        # 4. INCREMENT TEAM WORKLOAD
-        assignee_user_id = assignee_info.get("assignee_user_id")
-        if assignee_user_id and assignee_user_id != "unassigned":
-            users_collection = get_users_collection()
-            await users_collection.update_one(
-                {"_id": assignee_user_id},
-                {"$inc": {"workload": 1}}
-            )
         
         # Success - no error
         state["error"] = None

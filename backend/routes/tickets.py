@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, status
 from typing import List
 from datetime import datetime
 from bson import ObjectId
+import pytz
 
 from schemas import TicketCreate, TicketUpdate, TicketResponse, TriageResponse
 from database import get_tickets_collection, get_activity_logs_collection
@@ -9,12 +10,61 @@ from services.ai_triage import perform_triage
 from models import Activity, get_ist_now
 from triage import create_triage_graph
 
+# IST timezone
+ist = pytz.timezone('Asia/Kolkata')
+
 router = APIRouter()
 def ticket_helper(ticket) -> dict:
     """Convert MongoDB document to dict."""
     if ticket:
         ticket["id"] = str(ticket["_id"])
         ticket.pop("_id", None)
+        # Ensure datetime fields are properly formatted with timezone info
+        # MongoDB may return naive datetimes, so we ensure they're timezone-aware
+        
+        datetime_fields = ['created_at', 'updated_at']
+        for field in datetime_fields:
+            if field in ticket and ticket[field]:
+                if isinstance(ticket[field], datetime):
+                    # If datetime is naive (no timezone), assume it's IST
+                    if ticket[field].tzinfo is None:
+                        ticket[field] = ist.localize(ticket[field])
+                    # Convert to IST if it has a different timezone
+                    elif ticket[field].tzinfo != ist:
+                        ticket[field] = ticket[field].astimezone(ist)
+        
+        # Handle activities timestamps
+        if 'activities' in ticket and ticket['activities']:
+            for activity in ticket['activities']:
+                if 'timestamp' in activity and activity['timestamp']:
+                    # Handle datetime objects
+                    if isinstance(activity['timestamp'], datetime):
+                        if activity['timestamp'].tzinfo is None:
+                            activity['timestamp'] = ist.localize(activity['timestamp'])
+                        elif activity['timestamp'].tzinfo != ist:
+                            activity['timestamp'] = activity['timestamp'].astimezone(ist)
+                        # Ensure it's serialized as ISO string with timezone
+                        activity['timestamp'] = activity['timestamp'].isoformat()
+                    # Handle string timestamps (already ISO formatted)
+                    elif isinstance(activity['timestamp'], str):
+                        # If it's already a string, try to parse and ensure it's in IST
+                        try:
+                            # Parse the string to datetime
+                            parsed_dt = datetime.fromisoformat(activity['timestamp'].replace('Z', '+00:00'))
+                            if parsed_dt.tzinfo is None:
+                                parsed_dt = ist.localize(parsed_dt)
+                            else:
+                                parsed_dt = parsed_dt.astimezone(ist)
+                            activity['timestamp'] = parsed_dt.isoformat()
+                        except (ValueError, AttributeError):
+                            # If parsing fails, keep the original string
+                            pass
+    
+        # Convert datetime fields to ISO strings for JSON serialization
+        for field in datetime_fields:
+            if field in ticket and ticket[field] and isinstance(ticket[field], datetime):
+                ticket[field] = ticket[field].isoformat()
+    
     return ticket
 
 @router.post("", response_model=TicketResponse, status_code=status.HTTP_201_CREATED)
@@ -23,6 +73,10 @@ async def create_ticket(ticket: TicketCreate):
     collection = get_tickets_collection()
     
     ticket_dict = ticket.dict()
+    # Ensure category has a default value if not provided
+    if not ticket_dict.get("category"):
+        ticket_dict["category"] = "General"
+    
     ticket_dict.update({
         "status": "open",
         "priority": None,
@@ -131,7 +185,7 @@ async def triage_ticket(ticket_id: str):
     """
     Trigger AI triage for a ticket using LangGraph multi-agent workflow.
     
-    Flow: ContextAgent → PriorityAgent → AssigneeAgent → ReplyAgent → PersistNode
+    Flow: ContextAgent → PriorityAgent → AssigneeAgent → RationaleAgent → ReplyAgent → PersistNode
     """
     collection = get_tickets_collection()
     
@@ -153,6 +207,7 @@ async def triage_ticket(ticket_id: str):
             "context": None,
             "priority": None,
             "assignee": None,
+            "rationale": None,
             "reply": None,
             "error": None
         }
@@ -167,14 +222,20 @@ async def triage_ticket(ticket_id: str):
         # Extract results
         priority_info = final_state.get("priority", {})
         assignee_info = final_state.get("assignee", {})
+        rationale_info = final_state.get("rationale", {})
         reply = final_state.get("reply", "")
+        
+        # Combine rationales from RationaleAgent
+        priority_rationale = rationale_info.get("priority_rationale", "")
+        assignee_rationale = rationale_info.get("assignee_rationale", "")
+        combined_rationale = f"{priority_rationale} | {assignee_rationale}" if priority_rationale and assignee_rationale else (priority_rationale or assignee_rationale)
         
         # Return triage response (persist_node already updated MongoDB)
         return TriageResponse(
             priority=priority_info.get("priority", "P3"),
             confidence=priority_info.get("confidence", 0.0),
             assignee=assignee_info.get("assignee_user_id", "unassigned"),
-            rationale=f"{priority_info.get('rationale', '')} | {assignee_info.get('rationale', '')}",
+            rationale=combined_rationale,
             reply_draft=reply
         )
         

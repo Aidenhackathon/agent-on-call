@@ -21,10 +21,17 @@ app.add_middleware(
 # Event handlers
 @app.on_event("startup")
 async def startup_db_client():
-    await connect_to_mongo()
+    """Connect to MongoDB on application startup."""
+    try:
+        await connect_to_mongo()
+    except Exception as e:
+        print(f"⚠️  Failed to connect to MongoDB: {e}")
+        print("⚠️  Application will start but database operations will fail.")
+        # Don't raise - allow app to start for health checks, but log the error
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
+    """Close MongoDB connection on application shutdown."""
     await close_mongo_connection()
 
 # Include routers

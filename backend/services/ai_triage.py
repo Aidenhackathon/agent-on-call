@@ -6,16 +6,14 @@ import json
 
 from models import get_ist_now
 
-print("hit ",get_ist_now())
-
 # Configure Gemini API
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 USE_MOCK = os.getenv("USE_MOCK_AI", "false").lower() == "true"
-print(GEMINI_API_KEY)
 
 if GEMINI_API_KEY and not USE_MOCK:
     genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    # Using gemini-2.0-flash-exp for consistency with triage agents
+    model = genai.GenerativeModel('gemini-2.0-flash-exp')
 else:
     model = None
 

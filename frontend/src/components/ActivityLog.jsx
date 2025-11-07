@@ -52,18 +52,39 @@ const ActivityLog = ({ activities }) => {
   };
 
   const formatDate = (dateString) => {
-    // Display IST time directly without timezone conversion
-    const date = new Date(dateString);
-    return date.toLocaleString('en-IN', { 
-      timeZone: 'Asia/Kolkata',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
+    if (!dateString) {
+      console.warn('ActivityLog: No timestamp provided for activity');
+      return 'N/A';
+    }
+    
+    try {
+      // Parse the date string - handle both ISO strings with timezone and without
+      let date = new Date(dateString);
+      
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        console.warn('ActivityLog: Invalid date string:', dateString);
+        return dateString || 'N/A'; // Return original string if invalid
+      }
+      
+      // Always format in IST timezone for display
+      // The date object stores UTC internally, so we convert to IST for display
+      const formatted = new Intl.DateTimeFormat('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+      }).format(date);
+      
+      return formatted || 'N/A';
+    } catch (error) {
+      console.error('ActivityLog: Error formatting date:', error, dateString);
+      return dateString || 'N/A';
+    }
   };
 
   return (
@@ -73,10 +94,12 @@ const ActivityLog = ({ activities }) => {
           Activity Log
         </Typography>
         <Timeline position="right">
-          {activities.map((activity, index) => (
+          {activities.map((activity, index) => {
+            const timestamp = activity?.timestamp || activity?.created_at || null;
+            return (
             <TimelineItem key={index}>
               <TimelineOppositeContent color="text.secondary" sx={{ flex: 0.3 }}>
-                <Typography variant="caption">{formatDate(activity.timestamp)}</Typography>
+                <Typography variant="caption">{formatDate(timestamp)}</Typography>
               </TimelineOppositeContent>
               <TimelineSeparator>
                 <TimelineDot color={getColor(activity.action)}>
@@ -94,7 +117,8 @@ const ActivityLog = ({ activities }) => {
                 </Typography>
               </TimelineContent>
             </TimelineItem>
-          ))}
+            );
+          })}
         </Timeline>
       </CardContent>
     </Card>

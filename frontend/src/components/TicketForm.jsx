@@ -3,26 +3,14 @@ import {
   TextField,
   Button,
   Box,
-  MenuItem,
   Paper,
   Typography,
 } from '@mui/material';
-
-const CATEGORIES = [
-  'Technical',
-  'Billing',
-  'Account',
-  'Feature Request',
-  'Bug Report',
-  'General Inquiry',
-  'Critical',
-];
 
 const TicketForm = ({ onSubmit, onCancel, initialValues = {} }) => {
   const [formData, setFormData] = useState({
     title: initialValues.title || '',
     description: initialValues.description || '',
-    category: initialValues.category || 'Technical',
   });
 
   const [errors, setErrors] = useState({});
@@ -49,9 +37,6 @@ const TicketForm = ({ onSubmit, onCancel, initialValues = {} }) => {
     }
     if (!formData.description.trim()) {
       newErrors.description = 'Description is required';
-    }
-    if (!formData.category) {
-      newErrors.category = 'Category is required';
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -92,28 +77,9 @@ const TicketForm = ({ onSubmit, onCancel, initialValues = {} }) => {
           helperText={errors.description}
           multiline
           rows={4}
-          sx={{ mb: 2 }}
-          required
-        />
-
-        <TextField
-          fullWidth
-          select
-          label="Category"
-          name="category"
-          value={formData.category}
-          onChange={handleChange}
-          error={!!errors.category}
-          helperText={errors.category}
           sx={{ mb: 3 }}
           required
-        >
-          {CATEGORIES.map((category) => (
-            <MenuItem key={category} value={category}>
-              {category}
-            </MenuItem>
-          ))}
-        </TextField>
+        />
 
         <Box sx={{ display: 'flex', gap: 2 }}>
           <Button type="submit" variant="contained" color="primary" size="large">

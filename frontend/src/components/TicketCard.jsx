@@ -64,9 +64,6 @@ const TicketCard = ({ ticket }) => {
         </Typography>
         
         <Box sx={{ mt: 2 }}>
-          <Typography variant="caption" display="block" color="text.secondary">
-            Category: {ticket.category}
-          </Typography>
           {ticket.assignee && (
             <Typography variant="caption" display="block" color="text.secondary">
               Assigned to: {ticket.assignee}

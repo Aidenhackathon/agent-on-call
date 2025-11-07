@@ -32,6 +32,13 @@ const statusColors = {
   closed: 'default',
 };
 
+const priorityColors = {
+  P0: 'error',
+  P1: 'warning',
+  P2: 'info',
+  P3: 'success',
+};
+
 const TicketDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -161,7 +168,9 @@ const TicketDetail = () => {
 
         <Box sx={{ display: 'flex', gap: 1, mb: 3 }}>
           <Chip label={ticket.status} color={statusColors[ticket.status]} />
-          <Chip label={ticket.category} variant="outlined" />
+          {ticket.priority && (
+            <Chip label={ticket.priority} color={priorityColors[ticket.priority] || 'default'} />
+          )}
         </Box>
 
         <Typography variant="h6" gutterBottom>

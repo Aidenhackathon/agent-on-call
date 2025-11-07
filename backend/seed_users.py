@@ -19,72 +19,52 @@ async def seed_users():
         {
             "_id": "devops_team",
             "name": "DevOps Team",
-            "skills": ["kubernetes", "docker", "aws", "infrastructure", "deployment", "monitoring", "cicd", "terraform", "ansible"],
-            "workload": 5,
-            "active": True
+            "skills": ["kubernetes", "docker", "aws", "infrastructure", "deployment", "monitoring", "cicd", "terraform", "ansible"]
         },
         {
             "_id": "backend_team",
             "name": "Backend Development Team",
-            "skills": ["python", "fastapi", "nodejs", "mongodb", "postgresql", "api", "database", "backend", "microservices", "rest"],
-            "workload": 8,
-            "active": True
+            "skills": ["python", "fastapi", "nodejs", "mongodb", "postgresql", "api", "database", "backend", "microservices", "rest"]
         },
         {
             "_id": "frontend_team",
             "name": "Frontend Development Team",
-            "skills": ["react", "javascript", "typescript", "css", "html", "ui", "ux", "frontend", "vite", "webpack", "nextjs"],
-            "workload": 6,
-            "active": True
+            "skills": ["react", "javascript", "typescript", "css", "html", "ui", "ux", "frontend", "vite", "webpack", "nextjs"]
         },
         {
             "_id": "finance_team",
             "name": "Finance Team",
-            "skills": ["billing", "payment", "stripe", "invoice", "refund", "accounting", "pricing", "subscription", "revenue"],
-            "workload": 3,
-            "active": True
+            "skills": ["billing", "payment", "stripe", "invoice", "refund", "accounting", "pricing", "subscription", "revenue"]
         },
         {
             "_id": "product_team",
             "name": "Product Team",
-            "skills": ["product", "feature", "roadmap", "analytics", "enhancement", "requirements", "design", "planning"],
-            "workload": 4,
-            "active": True
+            "skills": ["product", "feature", "roadmap", "analytics", "enhancement", "requirements", "design", "planning"]
         },
         {
             "_id": "security_team",
             "name": "Security Team",
-            "skills": ["security", "authentication", "authorization", "encryption", "vulnerability", "compliance", "penetration testing", "firewall"],
-            "workload": 2,
-            "active": True
+            "skills": ["security", "authentication", "authorization", "encryption", "vulnerability", "compliance", "penetration testing", "firewall"]
         },
         {
             "_id": "data_team",
             "name": "Data & Analytics Team",
-            "skills": ["data", "analytics", "reporting", "bigquery", "etl", "data warehouse", "business intelligence", "sql"],
-            "workload": 3,
-            "active": True
+            "skills": ["data", "analytics", "reporting", "bigquery", "etl", "data warehouse", "business intelligence", "sql"]
         },
         {
             "_id": "mobile_team",
             "name": "Mobile Development Team",
-            "skills": ["ios", "android", "mobile", "react native", "flutter", "swift", "kotlin", "app store"],
-            "workload": 5,
-            "active": True
+            "skills": ["ios", "android", "mobile", "react native", "flutter", "swift", "kotlin", "app store"]
         },
         {
             "_id": "support_team",
             "name": "Customer Support Team",
-            "skills": ["customer service", "support", "general", "troubleshooting", "help desk", "ticket management"],
-            "workload": 12,
-            "active": True
+            "skills": ["customer service", "support", "general", "troubleshooting", "help desk", "ticket management"]
         },
         {
             "_id": "qa_team",
             "name": "QA & Testing Team",
-            "skills": ["testing", "qa", "quality assurance", "automation", "selenium", "bug", "test cases", "regression"],
-            "workload": 4,
-            "active": True
+            "skills": ["testing", "qa", "quality assurance", "automation", "selenium", "bug", "test cases", "regression"]
         }
     ]
     
@@ -96,7 +76,7 @@ async def seed_users():
     print(f"📊 Total teams in database: {count}")
     
     async for team in users_collection.find():
-        print(f"   - {team['name']} ({team['_id']}) - Skills: {len(team['skills'])}, Workload: {team['workload']}")
+        print(f"   - {team['name']} ({team['_id']}) - Skills: {len(team['skills'])}")
 
 
 if __name__ == "__main__":

@@ -28,8 +28,7 @@ async def priority_agent(state: TriageState) -> TriageState:
     Returns:
         {
             "priority": "P0|P1|P2|P3",
-            "confidence": float,
-            "rationale": str
+            "confidence": float
         }
     """
     try:
@@ -52,8 +51,7 @@ async def priority_agent(state: TriageState) -> TriageState:
         else:
             priority_result = {
                 "priority": heuristic_priority,
-                "confidence": 0.85,
-                "rationale": f"Heuristic-based priority assignment: {heuristic_priority}"
+                "confidence": 0.85
             }
         
         state["priority"] = priority_result
@@ -109,11 +107,10 @@ Priority Guidelines:
 Respond in JSON format:
 {{
     "priority": "P0|P1|P2|P3",
-    "confidence": <float 0-1>,
-    "rationale": "<brief explanation>"
+    "confidence": <float 0-1>
 }}
 
-Keep rationale under 100 words."""
+Only return priority and confidence - no rationale needed."""
     
     try:
         response = await llm.ainvoke(prompt)
@@ -133,12 +130,14 @@ Keep rationale under 100 words."""
         
         result["confidence"] = float(result.get("confidence", 0.8))
         
+        # Remove rationale if present
+        result.pop("rationale", None)
+        
         return result
         
     except Exception as e:
         print(f"Gemini priority error: {e}")
         return {
             "priority": heuristic_priority,
-            "confidence": 0.75,
-            "rationale": f"Fallback to heuristic: {heuristic_priority}"
+            "confidence": 0.75
         }

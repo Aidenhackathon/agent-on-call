@@ -10,5 +10,6 @@ class TriageState(TypedDict, total=False):
     context: Optional[dict]
     priority: Optional[dict]
     assignee: Optional[dict]
+    rationale: Optional[dict]  # Contains priority_rationale and assignee_rationale
     reply: Optional[str]
     error: Optional[str]
