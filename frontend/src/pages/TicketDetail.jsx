@@ -49,6 +49,10 @@ const TicketDetail = () => {
   const [editingReply, setEditingReply] = useState(false);
   const [replyDraft, setReplyDraft] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [editingTicket, setEditingTicket] = useState(false);
+  const [ticketTitle, setTicketTitle] = useState('');
+  const [ticketDescription, setTicketDescription] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const fetchTicket = async () => {
     try {
@@ -57,6 +61,8 @@ const TicketDetail = () => {
       const data = await ticketsAPI.getById(id);
       setTicket(data);
       setReplyDraft(data.ai_reply_draft || '');
+      setTicketTitle(data.title || '');
+      setTicketDescription(data.description || '');
     } catch (err) {
       setError('Failed to load ticket. Please try again.');
       console.error(err);
@@ -91,6 +97,46 @@ const TicketDetail = () => {
     } catch (err) {
       setError('Failed to save reply. Please try again.');
       console.error(err);
+    }
+  };
+
+  const handleSaveTicket = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      // Update the ticket
+      await ticketsAPI.update(id, {
+        title: ticketTitle,
+        description: ticketDescription,
+      });
+      
+      // Automatically trigger triage after update
+      setSaving(false);
+      setTriaging(true);
+      try {
+        await ticketsAPI.triage(id);
+      } catch (triageErr) {
+        console.error('Auto-triage failed:', triageErr);
+        // Don't show error for triage failure, just log it
+      } finally {
+        setTriaging(false);
+      }
+      
+      setEditingTicket(false);
+      await fetchTicket();
+    } catch (err) {
+      setError('Failed to save ticket. Please try again.');
+      console.error(err);
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTicket(false);
+    if (ticket) {
+      setTicketTitle(ticket.title || '');
+      setTicketDescription(ticket.description || '');
     }
   };
 
@@ -153,18 +199,58 @@ const TicketDetail = () => {
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-          <Typography variant="h4" component="h1">
-            {ticket.title}
-          </Typography>
-          <Box>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<DeleteIcon />}
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              Delete
-            </Button>
+          {!editingTicket ? (
+            <Typography variant="h4" component="h1">
+              {ticket.title}
+            </Typography>
+          ) : (
+            <TextField
+              fullWidth
+              label="Title"
+              value={ticketTitle}
+              onChange={(e) => setTicketTitle(e.target.value)}
+              sx={{ mr: 2 }}
+              required
+            />
+          )}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            {!editingTicket ? (
+              <>
+                <Button
+                  variant="outlined"
+                  startIcon={<EditIcon />}
+                  onClick={() => setEditingTicket(true)}
+                >
+                  Edit
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  onClick={handleSaveTicket}
+                  disabled={saving || triaging}
+                >
+                  Save
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={handleCancelEdit}
+                  disabled={saving || triaging}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
           </Box>
         </Box>
 
@@ -178,9 +264,21 @@ const TicketDetail = () => {
         <Typography variant="h6" gutterBottom>
           Description
         </Typography>
-        <Typography variant="body1" paragraph>
-          {ticket.description}
-        </Typography>
+        {!editingTicket ? (
+          <Typography variant="body1" paragraph>
+            {ticket.description}
+          </Typography>
+        ) : (
+          <TextField
+            fullWidth
+            label="Description"
+            value={ticketDescription}
+            onChange={(e) => setTicketDescription(e.target.value)}
+            multiline
+            rows={4}
+            required
+          />
+        )}
 
         <Grid container spacing={2} sx={{ mt: 2 }}>
           <Grid item xs={12} sm={6}>
@@ -195,18 +293,27 @@ const TicketDetail = () => {
           </Grid>
         </Grid>
 
-        <Box sx={{ mt: 3 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={triaging ? <CircularProgress size={20} color="inherit" /> : <SmartToyIcon />}
-            onClick={handleTriage}
-            disabled={triaging}
-            size="large"
-          >
-            {triaging ? 'Triaging...' : 'Auto-Triage with AI'}
-          </Button>
-        </Box>
+        {!editingTicket && (
+          <Box sx={{ mt: 3 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={triaging ? <CircularProgress size={20} color="inherit" /> : <SmartToyIcon />}
+              onClick={handleTriage}
+              disabled={triaging}
+              size="large"
+            >
+              {triaging ? 'Triaging...' : 'Auto-Triage with AI'}
+            </Button>
+          </Box>
+        )}
+        {(saving || triaging) && (
+          <Box sx={{ mt: 2 }}>
+            <Alert severity="info">
+              {saving ? 'Saving ticket...' : 'Auto-triaging ticket...'}
+            </Alert>
+          </Box>
+        )}
       </Paper>
 
       {ticket.priority && (

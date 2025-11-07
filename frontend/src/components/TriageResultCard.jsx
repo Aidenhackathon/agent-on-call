@@ -25,6 +25,28 @@ const TriageResultCard = ({ triage }) => {
 
   const confidencePercent = Math.round(triage.ai_confidence * 100);
 
+  // Helper function to safely convert rationale to string
+  const getRationaleText = (rationale) => {
+    if (!rationale) return 'No rationale available';
+    if (typeof rationale === 'string') return rationale;
+    if (typeof rationale === 'object') {
+      // If it's an object with priority_rationale and assignee_rationale, combine them
+      if (rationale.priority_rationale || rationale.assignee_rationale) {
+        const parts = [];
+        if (rationale.priority_rationale) parts.push(rationale.priority_rationale);
+        if (rationale.assignee_rationale) parts.push(rationale.assignee_rationale);
+        return parts.join(' | ');
+      }
+      // Otherwise, try to convert to string safely
+      try {
+        return JSON.stringify(rationale);
+      } catch {
+        return String(rationale);
+      }
+    }
+    return String(rationale);
+  };
+
   return (
     <Card sx={{ mb: 3, backgroundColor: '#f9f9f9' }}>
       <CardContent>
@@ -63,7 +85,7 @@ const TriageResultCard = ({ triage }) => {
             Rationale:
           </Typography>
           <Typography variant="body2" color="text.secondary" paragraph>
-            {triage.ai_rationale}
+            {getRationaleText(triage.ai_rationale)}
           </Typography>
 
           <Typography variant="subtitle2" gutterBottom>
@@ -78,7 +100,7 @@ const TriageResultCard = ({ triage }) => {
             }}
           >
             <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-              {triage.ai_reply_draft}
+              {triage.ai_reply_draft || 'No reply draft available'}
             </Typography>
           </Box>
         </Box>

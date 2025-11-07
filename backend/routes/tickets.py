@@ -64,6 +64,20 @@ def ticket_helper(ticket) -> dict:
         for field in datetime_fields:
             if field in ticket and ticket[field] and isinstance(ticket[field], datetime):
                 ticket[field] = ticket[field].isoformat()
+        
+        # Ensure ai_rationale is always a string (not an object)
+        if 'ai_rationale' in ticket and ticket['ai_rationale']:
+            if not isinstance(ticket['ai_rationale'], str):
+                # If it's a dict/object, try to combine priority_rationale and assignee_rationale
+                if isinstance(ticket['ai_rationale'], dict):
+                    priority_rationale = ticket['ai_rationale'].get('priority_rationale', '')
+                    assignee_rationale = ticket['ai_rationale'].get('assignee_rationale', '')
+                    if priority_rationale and assignee_rationale:
+                        ticket['ai_rationale'] = f"{priority_rationale} | {assignee_rationale}"
+                    else:
+                        ticket['ai_rationale'] = priority_rationale or assignee_rationale or ''
+                else:
+                    ticket['ai_rationale'] = str(ticket['ai_rationale'])
     
     return ticket
 
@@ -114,12 +128,22 @@ async def list_tickets():
 @router.get("/{ticket_id}", response_model=TicketResponse)
 async def get_ticket(ticket_id: str):
     """Get a single ticket by ID."""
-    collection = get_tickets_collection()
+    from database import _recreate_client
     
     if not ObjectId.is_valid(ticket_id):
         raise HTTPException(status_code=400, detail="Invalid ticket ID format")
     
-    ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+    # Get ticket - retry if event loop is closed
+    collection = get_tickets_collection()
+    try:
+        ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            _recreate_client()
+            collection = get_tickets_collection()
+            ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+        else:
+            raise
     
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -129,13 +153,22 @@ async def get_ticket(ticket_id: str):
 @router.put("/{ticket_id}", response_model=TicketResponse)
 async def update_ticket(ticket_id: str, ticket_update: TicketUpdate):
     """Update a ticket."""
-    collection = get_tickets_collection()
+    from database import _recreate_client
     
     if not ObjectId.is_valid(ticket_id):
         raise HTTPException(status_code=400, detail="Invalid ticket ID format")
     
-    # Get existing ticket
-    existing_ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+    # Get existing ticket - retry if event loop is closed
+    collection = get_tickets_collection()
+    try:
+        existing_ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            _recreate_client()
+            collection = get_tickets_collection()
+            existing_ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+        else:
+            raise
     if not existing_ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
     
@@ -168,12 +201,22 @@ async def update_ticket(ticket_id: str, ticket_update: TicketUpdate):
 @router.delete("/{ticket_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_ticket(ticket_id: str):
     """Delete a ticket."""
-    collection = get_tickets_collection()
+    from database import _recreate_client
     
     if not ObjectId.is_valid(ticket_id):
         raise HTTPException(status_code=400, detail="Invalid ticket ID format")
     
-    result = await collection.delete_one({"_id": ObjectId(ticket_id)})
+    # Delete ticket - retry if event loop is closed
+    collection = get_tickets_collection()
+    try:
+        result = await collection.delete_one({"_id": ObjectId(ticket_id)})
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            _recreate_client()
+            collection = get_tickets_collection()
+            result = await collection.delete_one({"_id": ObjectId(ticket_id)})
+        else:
+            raise
     
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Ticket not found")
@@ -187,15 +230,28 @@ async def triage_ticket(ticket_id: str):
     
     Flow: ContextAgent → PriorityAgent → AssigneeAgent → RationaleAgent → ReplyAgent → PersistNode
     """
-    collection = get_tickets_collection()
+    from database import _recreate_client
     
     if not ObjectId.is_valid(ticket_id):
         raise HTTPException(status_code=400, detail="Invalid ticket ID format")
     
-    # Get ticket from MongoDB
-    ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+    # Get ticket from MongoDB - retry if event loop is closed
+    collection = get_tickets_collection()
+    try:
+        ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+    except RuntimeError as e:
+        if "Event loop is closed" in str(e):
+            _recreate_client()
+            collection = get_tickets_collection()
+            ticket = await collection.find_one({"_id": ObjectId(ticket_id)})
+        else:
+            raise
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    # Ensure database client is recreated before LangGraph workflow
+    # This ensures Motor uses the correct event loop for workflow operations
+    _recreate_client()
     
     try:
         # Create LangGraph workflow

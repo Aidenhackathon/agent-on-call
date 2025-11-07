@@ -113,7 +113,7 @@ async def seed_users():
                 "help desk", "troubleshooting", "ticket management", "zendesk", "intercom",
                 "onboarding", "training", "documentation", "faq", "knowledge base",
                 "customer questions", "general inquiries", "account issues", "guidance",
-                "technical support", "product support", "user assistance", "escalation"
+                "technical support", "product support", "user assistance", "escalation","i don't know"
             ]
         },
         {

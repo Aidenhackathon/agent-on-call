@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
 
 const priorityColors = {
   P0: 'error',
@@ -25,7 +26,7 @@ const statusColors = {
   closed: 'default',
 };
 
-const TicketCard = ({ ticket }) => {
+const TicketCard = ({ ticket, onEdit }) => {
   const navigate = useNavigate();
 
   const formatDate = (dateString) => {
@@ -85,6 +86,15 @@ const TicketCard = ({ ticket }) => {
         >
           View Details
         </Button>
+        {onEdit && (
+          <Button
+            size="small"
+            startIcon={<EditIcon />}
+            onClick={() => onEdit(ticket)}
+          >
+            Edit
+          </Button>
+        )}
       </CardActions>
     </Card>
   );
