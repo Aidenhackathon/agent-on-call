@@ -25,7 +25,7 @@ async def seed_users():
                 "vue", "angular", "nextjs", "svelte", "webpack", "vite", "tailwind", "bootstrap",
                 "responsive design", "accessibility", "performance", "browser compatibility",
                 "component library", "state management", "redux", "context api", "hooks",
-                "frontend architecture", "spa", "pwa", "ui bugs", "display issues", "rendering"
+                "frontend architecture", "spa", "pwa", "ui bugs","ui down", "display issues", "rendering"
             ]
         },
         {
